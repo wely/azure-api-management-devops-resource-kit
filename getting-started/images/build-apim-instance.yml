@@ -1,0 +1,32 @@
+jobs:
+- job: Job_1
+  displayName: Agent job 1
+  pool:
+    vmImage: vs2017-win2016
+  steps:
+  - checkout: self
+  - task: AzureFileCopy@3
+    displayName: AzureBlob File Copy
+    inputs:
+      SourcePath: templates
+      ConnectedServiceNameARM: [guid]
+      Destination: AzureBlob
+      StorageAccountRM: [azure-storage-name]
+      ContainerName: armartifacts
+      sasTokenTimeOutInMinutes: 240
+  - task: AzureResourceManagerTemplateDeployment@3
+    displayName: 'ARM Template deployment: Resource Group scope'
+    inputs:
+      ConnectedServiceName: [guid]
+      subscriptionName: [subscription-guid]
+      resourceGroupName: apim-premium-rg
+      location: [region]
+      csmFile: templates/apim-dev-http-bin-api.template.json
+      csmParametersFile: templates/apim-dev-parameters.json
+      deploymentMode: Validation
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Artifact: drop-dev'
+    inputs:
+      PathtoPublish: templates
+      ArtifactName: drop-dev
+...
