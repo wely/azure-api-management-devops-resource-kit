@@ -1,10 +1,10 @@
-## 1. Basic: with two APIM instances, without PR (pull request)
+## 1. Reference architecture (basic version): with two APIM instances, without pull request
 Here's the architecture diagram
 
 ![title](images/arch01.png)
 
 ## Step 0) Prerequisites
-The following Azure resources need to be provisioned before the following walkthru:
+The following Azure resources are need to be provisioned before the following walkthru:
 * Azure Function (Dev instance)
 * Azure Function (Prod instance)
 * Azure API Mgt (Dev instance)
@@ -14,12 +14,14 @@ The following Azure resources need to be provisioned before the following walkth
 
 ## Step 1) This illustrates an API developer using VS Code to develop the backend apis. 
 
-a) In this example the backend api is developed with .NET Core and Azure Functions. Nothing fancy, just a plain "Hello function" as the backend api. **You can actually use any of your preferred platform**.
+### a) Azure Repos to store the backend apis
+In this example the backend api is developed with .NET Core and Azure Functions. Nothing fancy, just a plain "Hello function" as the backend api. **You can actually use any of your preferred platform**.
 The apis are stored in git repository, in this example it's on Azure Repos. 
 
 ![title](images/azure-repos-for-backend-api.png)
 
-b) The CI (Continuous Integration)
+### b) The CI (Continuous Integration)
+
 This part is done in Pipelines menu in Azure Pipelines. 
 
 As soon as there's any new commit to the Azure Repos (Backend API Code), it will automatically trigger a build which eventually compile the .NET Core app and place the artifact the drop folder. To simplify the experience, you can choose the classic (UI) editor and enter "function", choose "Azure Function for .NET" as the job template, as can be seen from the diagram:
@@ -33,16 +35,17 @@ Make sure you check the **Enable continous integration** checkbox in the Trigger
 
 ![title](images/ci-trigger.png)
 
-c) The CD (Continuous Deployment)
+### c) The CD (Continuous Deployment)
 
-We then configure the CD in the Releases menu of Azure Pipelines. 
+We then configure the CD in the Releases menu of Azure Pipelines. Make sure to enable the Continuous deployment trigger.
+
 ![title](images/cd-trigger.png)
 
 My CD pipeline is as following. 
 
 ![title](images/cd-main-template.png)
 
-The first step is to deploy to Dev instance of Azure Function. The task is as following:
+The first step is to deploy to Dev instance of the Azure Function. The task is as following:
 
 ![title](images/cd-to-dev-function.png)
 
@@ -55,16 +58,20 @@ The task of Deploy to Production stage is exactly the same with the Deploy to De
 ## Step 2) API publisher to setup and configure APIM
 The next typical step is for the API publisher to configure the APIM instance, including to add the backend api to the Dev instance of APIM, defining policies, add apis to products, etc. And most people perform this thru Azure Portal.
 
+### a) Adding apis to Azure API
+
 In this example, we just simply add the API from the Azure Function, then assign it to the Starter product. Then simply browse the Dev Azure Function:
 
 ![title](images/add-api-to-apim.png)
+
+### b) Test your api from Azure API Management
 
 You may test your API to ensure that it correctly connected to the backend.
 
 ![title](images/add-api-to-apim-test.png)
 
 ## Step 3) Extract the templates
-What we want to do next is to extract the templates in particular the changes we made thru the Portal during Step 2 so that it can be applied later on the Production Instance.
+What we want to do next is to extract the templates in particular the changes we made thru the Portal during [Step 2](#step-2-api-publisher-to-setup-and-configure-apim) so that it can be applied later on the Production Instance.
 
 To do that, we will be using the [Extractor tool](https://github.com/Azure/azure-api-management-devops-resource-kit/tree/master/src/APIM_ARMTemplate#Extractor) as part of the Azure APIM DevOps Resource Kit. 
 
@@ -83,13 +90,13 @@ You may verify or even make changes to the json files as needed.
 ## Step 4) Using  Azure Pipelines to apply change in Azure APIM Production Instance
 The next step is to setup Azure Pipelines which will be used to perform configuration and template changes on the Azure API Management Production Instance.
 
-a) Preparing the Repo for the json template files.
+### a) Preparing the Repo for the json template files.
 
 We will also use Azure Repos to store the template (json files). However make sure that you create a new Repo, not to mixed with the Backend API one.
 
 ![title](images/new-repo-for-json.png)
 
-b) Setup CI as the validation
+### b) Setup CI as the validation
 
 Next, we will setup our CI in the Pipeline section, and add the following tasks:
 
@@ -99,7 +106,7 @@ Here's the [yaml file](images/build-apim-instance.yml) from complete view.
 
 As can be seen in the yaml, the first step is to copy the file from Azure Repos to Azure Blob Storage. The second step is to perform the validation with Azure Template Deployment. And finally to publish the artifact to the drop-dev directory. 
 
-c) Setup CD as the deployment
+### c) Setup CD as the deployment
 
 The actual deployment takes place in this step once the validation has been successfully done as part of the CI (build step above).
 
